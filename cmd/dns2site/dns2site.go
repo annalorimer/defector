@@ -14,6 +14,8 @@ import (
 	"runtime"
 	"sync"
 	"time"
+        "strings"
+        "math"
 )
 
 type sample struct {
@@ -60,6 +62,8 @@ var (
 	useCommon = flag.Bool("common", false,
 		"use common domains in classification")
 	sampleCount int
+        mode      = flag.String("mode", "nosplit", "splitting strategy")
+        numResolvers = flag.Int("numResolvers", 1, "number of resolvers to split data across")
 )
 
 func main() {
@@ -157,7 +161,7 @@ func testing(data map[int][]sample, fps fingerprints,
 		for si, sampl := range samples {
 			if forTesting(site, si) {
 				wIn <- work{
-					reqs: sampl.requests,
+					reqs: split(sampl.requests, *mode, *numResolvers),
 					site: site,
 				}
 				testing++
@@ -253,3 +257,31 @@ func outcome(trueclass, output int,
 	}
 	return
 }
+
+func split(requests []request, mode string, numResolvers int) (reqs []request) {
+    if (strings.Compare(mode, "random") == 0) {
+       split :=  randomSplit(requests, numResolvers)
+        return split
+    } else {
+        return requests
+    }
+}
+
+func randomSplit(requests []request, numResolvers int) (reqs []request){
+    requestsShuffle := shuffle(requests)
+    n := len(requests)
+    t := int(math.Floor(float64(n)/float64(numResolvers)))
+    return requestsShuffle[:t]
+}
+
+func shuffle(requests []request) (reqs []request) {
+  r := rand.New(rand.NewSource(time.Now().Unix()))
+  for len(requests) > 0 {
+    n := len(requests)
+    randIndex := r.Intn(n)
+    requests[n-1], requests[randIndex] = requests[randIndex], requests[n-1]
+    requests = requests[:n-1]
+  }
+  return requests
+}
+
