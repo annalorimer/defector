@@ -54,16 +54,16 @@ const (
 
 var (
 	torTTL    = flag.Bool("t", true, "set the DNS TTL to Tor [min,max]")
-	sites     = flag.Int("sites", 1000, "max sites to load")
-	instances = flag.Int("instances", 0, "number of instances per site")
-	open      = flag.Int("open", -1, "number of open-world sites")
+	sites     = flag.Int("sites", 100000, "max sites to load")
+	instances = flag.Int("instances", 5, "number of instances per site")
+	open      = flag.Int("open", 0, "number of open-world sites")
 	k         = flag.Int("k", 1, "the number of votes for classification")
 
 	useCommon = flag.Bool("common", false,
 		"use common domains in classification")
-	sampleCount int
-        mode      = flag.String("mode", "nosplit", "splitting strategy")
-        numResolvers = flag.Int("numResolvers", 1, "number of resolvers to split data across")
+        sampleCount int
+        mode      = flag.String("mode", "random", "splitting strategy")
+        numResolvers = flag.Int("numResolvers", 3, "number of resolvers to split data across")
 )
 
 func main() {
@@ -73,7 +73,13 @@ func main() {
 		log.Fatal("need to specify data dir")
 	}
 	log.Printf("getting list of files in %s", flag.Arg(0))
+        //test, err := ioutil.ReadFile("alexa1mx5-extracted/1-1.dns")
+        //log.Printf("%s", test)
+        //if err != nil {
+        //    log.Fatalf("blargh (%s)", err)
+        //}
 	files, er := ioutil.ReadDir(flag.Arg(0))
+        log.Printf("# of files %d", len(files))
 	if er != nil {
 		log.Fatalf("failed to read data dir (%s)", er)
 	}
@@ -89,7 +95,8 @@ func main() {
 	}
 
 	log.Printf("attempting to read %dx%d+%d sites", *sites, *instances, *open)
-	data := readData(files)
+	data := readData(files) 
+        log.Printf("%d", sampleCount)
 	if len(data) < *sites+*open {
 		log.Fatalf("expected to read %d sites, got %d", *sites, len(data))
 	}
@@ -259,7 +266,7 @@ func outcome(trueclass, output int,
 }
 
 func split(requests []request, mode string, numResolvers int) (reqs []request) {
-    if (strings.Compare(mode, "random") == 0) {
+    if (strings.Compare("random", "random") == 0) {
        split :=  randomSplit(requests, numResolvers)
         return split
     } else {
@@ -268,9 +275,12 @@ func split(requests []request, mode string, numResolvers int) (reqs []request) {
 }
 
 func randomSplit(requests []request, numResolvers int) (reqs []request){
+    log.Printf("num reqs: %d", len(requests))
     requestsShuffle := shuffle(requests)
     n := len(requests)
     t := int(math.Floor(float64(n)/float64(numResolvers)))
+    log.Printf("t: %d", t)
+    log.Printf("Random split: %v", requestsShuffle[:t])
     return requestsShuffle[:t]
 }
 
