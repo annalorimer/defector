@@ -1,0 +1,9 @@
+www.google.com,290,216.58.209.100,2a00:1450:400f:805::2004
+clients1.google.com,162
+clients.l.google.com,174,216.58.209.110,2a00:1450:400f:805::200e
+www.google.se,176,216.58.209.99
+consent.google.com,300,2a00:1450:400f:805::200e,216.58.209.110
+ssl.gstatic.com,152,2a00:1450:400f:805::2003,216.58.209.99
+www.gstatic.com,67,216.58.209.99,2a00:1450:400f:805::2003
+apis.google.com,114560
+plus.l.google.com,235,216.58.209.110,2a00:1450:400f:805::200e

@@ -16,6 +16,7 @@ import (
 	"time"
         "strings"
         "math"
+        "hash/fnv"
 )
 
 type sample struct {
@@ -54,7 +55,7 @@ const (
 
 var (
 	torTTL    = flag.Bool("t", true, "set the DNS TTL to Tor [min,max]")
-	sites     = flag.Int("sites", 100000, "max sites to load")
+	sites     = flag.Int("sites", 1000000, "max sites to load")
 	instances = flag.Int("instances", 5, "number of instances per site")
 	open      = flag.Int("open", 0, "number of open-world sites")
 	k         = flag.Int("k", 1, "the number of votes for classification")
@@ -64,10 +65,14 @@ var (
         sampleCount int
         mode      = flag.String("mode", "random", "splitting strategy")
         numResolvers = flag.Int("numResolvers", 3, "number of resolvers to split data across")
+        hash_resolver int
 )
 
 func main() {
 	rand.Seed(time.Now().UnixNano())
+        log.Printf("numResolvers: %d", *numResolvers)
+        hash_resolver = rand.Intn(*numResolvers) +1
+        log.Printf("has_resolver: %d", hash_resolver)
 	flag.Parse()
 	if len(flag.Args()) == 0 {
 		log.Fatal("need to specify data dir")
@@ -266,10 +271,13 @@ func outcome(trueclass, output int,
 }
 
 func split(requests []request, mode string, numResolvers int) (reqs []request) {
-    if (strings.Compare("random", "random") == 0) {
+    if (strings.Compare("", "random") == 0) {
        split :=  randomSplit(requests, numResolvers)
         return split
-    } else {
+    } else if (strings.Compare("hash", "hash") == 0){
+        split := hashSplit(requests, numResolvers)
+        return split
+    }else {
         return requests
     }
 }
@@ -294,4 +302,24 @@ func shuffle(requests []request) (reqs []request) {
   }
   return requests
 }
+
+func hashSplit(requests []request, numResolvers int) (splitRequests []request) {
+//    log.Printf("num reqs: %d", len(requests))
+//    resolver := rand.Intn(numResolvers - 1) + 1
+    for req := range requests {
+        h := fnv.New32a()
+        domain := requests[req].domain
+        h.Write([]byte(domain))
+        index := h.Sum32()
+        candidate := int(index) % numResolvers
+        if (candidate == hash_resolver) {
+            splitRequests = append(splitRequests, requests[req])
+        }
+    }
+  //  log.Printf("Hash split: %v", splitRequests)
+  //  log.Printf("len hash split: %d", len(splitRequests))
+    return splitRequests
+}
+
+
 
